@@ -1,0 +1,6 @@
+Librerías de terceros incluidas localmente (sin necesidad de internet):
+
+- Bootstrap 5.3.3 .............. MIT        https://getbootstrap.com
+- Bootstrap Icons 1.11.3 ........ MIT        https://icons.getbootstrap.com
+- jsQR 1.4.0 ................... Apache-2.0  https://github.com/cozmo/jsQR
+- Source Serif 4, Public Sans, IBM Plex Mono (vía @fontsource) ... SIL OFL 1.1

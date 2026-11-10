@@ -1,0 +1,13 @@
+# Proxy HTTPS local para el sistema de entradas.
+# iniciar_https.bat detecta la IP de esta computadora y la pasa en MHN_HOST.
+# "tls internal": Caddy genera su propio certificado (autofirmado).
+
+{
+	# No usar el puerto 80 (a veces lo ocupan otros programas).
+	auto_https disable_redirects
+}
+
+{$MHN_HOST:localhost}, localhost {
+	tls internal
+	reverse_proxy 127.0.0.1:8473
+}

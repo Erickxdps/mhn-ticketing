@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Error inesperado — MHN{% endblock %}
+{% block topbar_title %}Error inesperado{% endblock %}
+{% block content %}
+<div class="mhn-maxw-md mhn-empty card mx-auto">
+  <i class="bi bi-exclamation-octagon"></i>
+  <h1 class="h4 mb-2">Ocurrió un error inesperado</h1>
+  <p class="mb-3">
+    El problema quedó registrado. Si estabas registrando una venta o
+    validando una entrada, revisa si la operación se completó antes
+    de repetirla, para evitar duplicados.
+  </p>
+  <a href="{{ url_for('main.index') if current_user.is_authenticated else url_for('auth.login') }}" class="btn btn-primary">
+    <i class="bi bi-house"></i> Volver al inicio
+  </a>
+</div>
+{% endblock %}

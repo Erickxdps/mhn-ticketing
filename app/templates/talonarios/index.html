@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, avisos_talonario, rango with context %}
+{% block title %}Talonarios — MHN{% endblock %}
+{% block topbar_title %}Talonarios{% endblock %}
+{% block content %}
+{% set es_admin = current_user.role == "ADMIN" %}
+<span class="mhn-eyebrow">Boletos físicos</span>
+<h1 class="mhn-page-title h3">Talonarios</h1>
+<p class="mhn-page-lede">Cada categoría tiene su propio talonario. El sistema entrega los números en orden y avisa cuando conviene registrar uno nuevo.</p>
+
+{% if modo != MODO_TALONARIO and es_admin %}
+<div class="alert alert-info d-flex align-items-center gap-2">
+  <i class="bi bi-info-circle-fill"></i>
+  <span>El modo de venta actual es «Ticket con QR». Para vender con talonario, cámbialo en <a href="{{ url_for('configuracion.ajustes') }}">Ajustes</a>.</span>
+</div>
+{% endif %}
+
+{{ avisos_talonario(alertas, False) }}
+
+<div class="mhn-booklet-grid">
+  {% for f in resumen %}
+  {% set c = f.categoria %}
+  <div class="mhn-booklet-card is-{{ f.nivel }}">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div>
+        <div class="fw-semibold">{{ c.name }}</div>
+        <div class="mhn-muted small mhn-num">{{ c.price | bs }}</div>
+      </div>
+      <span class="mhn-stock-chip is-{{ f.nivel }}">
+        {% if f.nivel == 'sin' %}Sin talonario{% elif f.nivel == 'agotado' %}Agotado{% elif f.nivel == 'bajo' %}Quedan pocos{% else %}Disponible{% endif %}
+      </span>
+    </div>
+    {% if f.actual %}
+      <div class="mhn-muted small">Siguiente boleto</div>
+      <div class="mhn-booklet-next mhn-num">{{ f.siguiente | num5 }}</div>
+      <div class="mhn-meter" role="img" aria-label="{{ f.actual.progress_percent }}% consumido">
+        <span style="width: {{ f.actual.progress_percent }}%"></span>
+      </div>
+      <div class="d-flex justify-content-between small mhn-muted">
+        <span>{{ f.actual.range_label }}</span>
+        <span><strong class="mhn-num">{{ f.disponibles }}</strong> disponibles</span>
+      </div>
+    {% else %}
+      <div class="mhn-booklet-next mhn-num mhn-muted">—</div>
+      <div class="small mhn-muted">No hay boletos para entregar.</div>
+    {% endif %}
+    {% if f.nivel in ('bajo', 'agotado', 'sin') and es_admin %}
+      <div class="small mt-2">Reposición sugerida desde el <strong class="mhn-num">{{ f.sugerido_inicio | num5 }}</strong>.</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<div class="row g-4 mt-1">
+  {% if es_admin %}
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h6 mb-1">Registrar talonario o reposición</h2>
+        <p class="mhn-muted small">Indica el primer número que se va a entregar y el último del talonario (ej. 00249 al 00500). Si el último boleto que ya vendiste fue el 00249, escribe 00250 como primero.</p>
+        <form method="post" action="{{ url_for('talonarios.nuevo') }}" id="form-talonario">
+          {{ csrf() }}
+          <div class="mb-3">
+            <label class="form-label" for="tal-categoria">Categoría</label>
+            <select class="form-select" name="category_id" id="tal-categoria" required>
+              {% for c in categorias %}<option value="{{ c.id }}" data-sugerido="{{ sugeridos[c.id] }}">{{ c.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label" for="tal-primero">Primer número</label>
+              <input type="number" class="form-control mhn-num" name="first_number" id="tal-primero" min="0" required>
+              <div class="form-text" id="tal-sugerencia"></div>
+            </div>
+            <div class="col-6">
+              <label class="form-label" for="tal-ultimo">Último número</label>
+              <input type="number" class="form-control mhn-num" name="last_number" id="tal-ultimo" min="0" required>
+            </div>
+          </div>
+          <div class="small mhn-muted mb-3" id="tal-total"></div>
+          <div class="mb-3">
+            <label class="form-label" for="tal-notas">Nota (opcional)</label>
+            <input type="text" class="form-control" name="notes" id="tal-notas" maxlength="200">
+          </div>
+          <button type="submit" class="btn btn-primary">Registrar talonario</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="{{ 'col-lg-6' if es_admin else 'col-lg-8' }}">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h6 mb-1">Anular un número</h2>
+        <p class="mhn-muted small">Si un boleto salió dañado, se rompió o se saltó, registra el número como anulado. No se vuelve a entregar y no suma a la caja.</p>
+        <form method="post" action="{{ url_for('talonarios.anular_numero') }}">
+          {{ csrf() }}
+          <div class="row g-3 mb-3">
+            <div class="col-8">
+              <label class="form-label" for="anu-categoria">Categoría</label>
+              <select class="form-select" name="category_id" id="anu-categoria" required>
+                {% for c in categorias %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-4">
+              <label class="form-label" for="anu-cantidad">Cantidad</label>
+              <input type="number" class="form-control mhn-num" name="cantidad" id="anu-cantidad" min="1" max="20" value="1" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="anu-motivo">Motivo</label>
+            <input type="text" class="form-control" name="motivo" id="anu-motivo" maxlength="200" placeholder="Ej. boleto dañado" required>
+          </div>
+          <p class="small mhn-muted">Se anulan los siguientes números disponibles de la categoría.</p>
+          <button type="submit" class="btn btn-outline-danger">Anular número</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="h6 mt-4 mb-2">Todos los talonarios</h2>
+{% if talonarios %}
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead>
+        <tr>
+          <th class="ps-3">Categoría</th>
+          <th>Rango</th>
+          <th class="text-end">Usados</th>
+          <th class="text-end">Quedan</th>
+          <th>Estado</th>
+          <th class="pe-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in talonarios %}
+        <tr>
+          <td class="ps-3">{{ t.ticket_category.name }}</td>
+          <td>{{ rango(t.first_number, t.last_number) }}</td>
+          <td class="text-end mhn-num">{{ t.consumed }} / {{ t.total }}</td>
+          <td class="text-end mhn-num">{{ t.remaining }}</td>
+          <td><span class="badge text-bg-{{ 'success' if t.state_label in ('En uso', 'Sin estrenar') else 'secondary' }}">{{ t.state_label }}</span></td>
+          <td class="pe-3 text-end"><a href="{{ url_for('talonarios.detalle', booklet_id=t.id) }}" class="small">Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="mhn-empty card"><i class="bi bi-journal-bookmark"></i>Todavía no hay talonarios registrados.</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if es_admin %}<script src="{{ url_for('static', filename='js/talonarios.js') }}"></script>{% endif %}
+{% endblock %}

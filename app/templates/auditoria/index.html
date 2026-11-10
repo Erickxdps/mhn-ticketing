@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager with context %}
+{% block title %}Auditoría — MHN{% endblock %}
+{% block topbar_title %}Auditoría{% endblock %}
+{% block content %}
+{% set args = {} %}
+{% for k, v in filtros.items() %}{% if v %}{% set _ = args.update({k: v}) %}{% endif %}{% endfor %}
+<span class="mhn-eyebrow">Administración</span>
+<h1 class="mhn-page-title h3">Auditoría</h1>
+<p class="mhn-page-lede">Registro de acciones sensibles: precios, anulaciones, talonarios, cierres, usuarios y ajustes. Solo se agrega; no se puede editar.</p>
+
+<form method="get" action="{{ url_for('auditoria.index') }}" class="card mb-3">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3"><label class="form-label small mb-1">Acción</label>
+        <select class="form-select form-select-sm" name="accion"><option value="">Todas</option>
+          {% for k, v in acciones.items() %}<option value="{{ k }}" {{ 'selected' if filtros.accion == k }}>{{ v }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-3"><label class="form-label small mb-1">Usuario</label><input type="text" class="form-control form-control-sm" name="usuario" value="{{ filtros.usuario }}" maxlength="80"></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Desde</label><input type="date" class="form-control form-control-sm" name="fecha_inicio" value="{{ filtros.fecha_inicio }}"></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Hasta</label><input type="date" class="form-control form-control-sm" name="fecha_fin" value="{{ filtros.fecha_fin }}"></div>
+      <div class="col-md-2 d-flex gap-1">
+        <button class="btn btn-primary btn-sm flex-grow-1" type="submit">Filtrar</button>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('auditoria.index') }}" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% if paginacion.items %}
+<div class="card"><div class="card-body p-0"><div class="table-responsive">
+  <table class="table table-sm mb-0 align-middle">
+    <thead><tr><th class="ps-3">Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th><th class="pe-3">IP</th></tr></thead>
+    <tbody>
+      {% for a in paginacion.items %}
+      <tr>
+        <td class="ps-3 mhn-muted small text-nowrap">{{ a.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+        <td>{{ a.username or '—' }}</td>
+        <td><span class="badge text-bg-secondary">{{ acciones.get(a.action, a.action) }}</span></td>
+        <td class="small">{{ a.detail or '' }}{% if a.entity %} <span class="mhn-muted">({{ a.entity }}{% if a.entity_id %} #{{ a.entity_id }}{% endif %})</span>{% endif %}</td>
+        <td class="pe-3 mhn-muted small mhn-num">{{ a.ip or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div></div>
+{{ pager(paginacion, 'auditoria.index', args) }}
+{% else %}
+<div class="mhn-empty card"><i class="bi bi-clipboard-check"></i>No hay registros con estos filtros.</div>
+{% endif %}
+{% endblock %}

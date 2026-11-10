@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, ficha_dia with context %}
+{% block title %}Cierre {{ cierre.closure_date.strftime('%d/%m/%Y') }} — MHN{% endblock %}
+{% block topbar_title %}Cierre diario{% endblock %}
+{% block content %}
+{% set dif = cierre.cash_difference %}
+<span class="mhn-eyebrow d-print-none"><a href="{{ url_for('cierres.index') }}" class="text-decoration-none"><i class="bi bi-arrow-left"></i> Cierres</a></span>
+<h1 class="mhn-page-title h3">Cierre del {{ cierre.closure_date.strftime('%d/%m/%Y') }}</h1>
+<p class="mhn-page-lede">Cerrado el {{ cierre.created_at.strftime('%d/%m/%Y %H:%M') }}{% if cierre.closed_by_user %} por {{ cierre.closed_by_user.full_name }}{% endif %}.</p>
+
+<div class="card mb-4"><div class="card-body">
+  <h2 class="h6 mb-3">Foto al momento del cierre</h2>
+  <dl class="row mb-0">
+    <dt class="col-sm-4 col-6 mhn-muted">Boletos vendidos</dt><dd class="col-sm-8 col-6 mhn-num">{{ cierre.total_tickets }} <span class="mhn-muted small">({{ cierre.total_physical_tickets }} de talonario)</span></dd>
+    <dt class="col-sm-4 col-6 mhn-muted">Total</dt><dd class="col-sm-8 col-6 mhn-num fw-semibold">{{ cierre.total_amount | bs }}</dd>
+    <dt class="col-sm-4 col-6 mhn-muted">Efectivo esperado</dt><dd class="col-sm-8 col-6 mhn-num">{{ cierre.total_cash | bs }}</dd>
+    <dt class="col-sm-4 col-6 mhn-muted">QR / transferencia</dt><dd class="col-sm-8 col-6 mhn-num">{{ cierre.total_qr | bs }}</dd>
+    <dt class="col-sm-4 col-6 mhn-muted">Efectivo contado</dt><dd class="col-sm-8 col-6 mhn-num">{{ cierre.cash_counted | bs if cierre.cash_counted is not none else '—' }}</dd>
+    <dt class="col-sm-4 col-6 mhn-muted">Diferencia</dt><dd class="col-sm-8 col-6 mhn-num {{ 'text-danger fw-semibold' if dif is not none and dif != 0 }}">{{ dif | bs if dif is not none else '—' }}</dd>
+    {% if cierre.total_voided_tickets %}<dt class="col-sm-4 col-6 mhn-muted">Anulados</dt><dd class="col-sm-8 col-6 mhn-num">{{ cierre.total_voided_tickets }} boletos ({{ cierre.total_voided_amount | bs }})</dd>{% endif %}
+    {% if cierre.notes %}<dt class="col-sm-4 col-6 mhn-muted">Observaciones</dt><dd class="col-sm-8 col-6">{{ cierre.notes }}</dd>{% endif %}
+  </dl>
+</div></div>
+
+<div class="mhn-eyebrow mb-2">Detalle actual del día</div>
+{{ ficha_dia(resumen) }}
+
+<div class="mt-4 d-print-none">
+  <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+</div>
+
+<div class="card mt-4 d-print-none mhn-danger-zone"><div class="card-body">
+  <h2 class="h6 mb-1">Reabrir este día</h2>
+  <p class="mhn-muted small mb-3">Elimina el cierre para poder corregir ventas. Queda registrado en la auditoría; después deberás cerrar el día otra vez.</p>
+  <form method="post" action="{{ url_for('cierres.reabrir', cierre_id=cierre.id) }}" class="row g-2"
+        onsubmit="return confirm('¿Reabrir el cierre del {{ cierre.closure_date.strftime('%d/%m/%Y') }}?');">
+    {{ csrf() }}
+    <div class="col-md-8"><input type="text" name="motivo" class="form-control" maxlength="200" placeholder="Motivo (obligatorio)" required></div>
+    <div class="col-md-4"><button type="submit" class="btn btn-outline-danger w-100">Reabrir</button></div>
+  </form>
+</div></div>
+{% endblock %}

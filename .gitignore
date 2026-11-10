@@ -1,0 +1,27 @@
+# Entorno virtual y cachés de Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Configuración local (puede contener claves)
+.env
+
+# Datos locales: base de datos, clave secreta, logs y respaldos.
+# Solo se conserva la carpeta vacía.
+instance/*
+!instance/.gitkeep
+backups/
+
+# Caddy se descarga aparte (ver README): es un binario de más de 50 MB
+caddy.exe
+
+# Accesos directos y archivos del sistema o del editor
+*.url
+*.lnk
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/

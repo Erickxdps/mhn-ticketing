@@ -1,0 +1,105 @@
+{# Piezas reutilizables. Importar con:  {% from "_macros.html" import ... with context %} #}
+
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{# Paginación. `pag` es lo que devuelve db.paginate; `endpoint` y `args` arman el enlace. #}
+{% macro pager(pag, endpoint, args={}) %}
+{% if pag.pages > 1 %}
+<nav class="mhn-pager d-print-none" aria-label="Paginación">
+  {% set base = args.copy() %}
+  {% if pag.has_prev %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for(endpoint, pagina=pag.prev_num, **base) }}"><i class="bi bi-chevron-left"></i> Anterior</a>{% else %}<span class="btn btn-sm btn-outline-secondary disabled"><i class="bi bi-chevron-left"></i> Anterior</span>{% endif %}
+  <span class="mhn-muted small">Página <strong>{{ pag.page }}</strong> de {{ pag.pages }} · {{ pag.total }} registros</span>
+  {% if pag.has_next %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for(endpoint, pagina=pag.next_num, **base) }}">Siguiente <i class="bi bi-chevron-right"></i></a>{% else %}<span class="btn btn-sm btn-outline-secondary disabled">Siguiente <i class="bi bi-chevron-right"></i></span>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}
+
+{% macro badge_ticket(ticket) %}
+  {% if ticket.status == "CANCELLED" %}<span class="badge text-bg-danger">Anulado</span>
+  {% elif ticket.is_physical %}<span class="badge text-bg-secondary">Talonario</span>
+  {% elif ticket.status == "USED" %}<span class="badge text-bg-secondary">Utilizado</span>
+  {% else %}<span class="badge text-bg-success">Sin usar</span>{% endif %}
+{% endmacro %}
+
+{# Franja de avisos de talonario (sin talonario, agotado, quedan pocos). #}
+{% macro avisos_talonario(alertas, es_admin=False) %}
+{% if alertas %}
+<div class="mhn-stock-alerts d-print-none">
+  {% for a in alertas %}
+  <div class="mhn-stock-alert is-{{ a.nivel }}">
+    <i class="bi {{ 'bi-exclamation-octagon-fill' if a.nivel in ('sin','agotado') else 'bi-exclamation-triangle-fill' }}"></i>
+    <span>{{ a.texto }}</span>
+    {% if es_admin %}<a href="{{ url_for('talonarios.index') }}" class="ms-auto">Registrar reposición</a>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
+
+{# Rango de números de talonario: 00249 – 00258 #}
+{% macro rango(desde, hasta) %}<span class="mhn-range">{{ desde | num5 }}{% if hasta != desde %}<span class="mhn-range-sep">–</span>{{ hasta | num5 }}{% endif %}</span>{% endmacro %}
+
+{# Ficha del día: cifras, caja, desglose y números de talonario. `r` = resumen_por_fecha(). #}
+{% macro ficha_dia(r) %}
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h6 mb-3">Caja del día</h2>
+      <dl class="row mb-0">
+        <dt class="col-7 mhn-muted">Ventas registradas</dt><dd class="col-5 text-end mhn-num">{{ r.total_ventas }}</dd>
+        <dt class="col-7 mhn-muted">Boletos vendidos</dt><dd class="col-5 text-end mhn-num">{{ r.total_tickets_vendidos }}</dd>
+        <dt class="col-7 mhn-muted ps-4 small">con talonario</dt><dd class="col-5 text-end mhn-num small">{{ r.total_tickets_fisicos }}</dd>
+        <dt class="col-7 mhn-muted ps-4 small">con QR</dt><dd class="col-5 text-end mhn-num small">{{ r.total_tickets_qr }}</dd>
+        <dt class="col-7 mhn-muted">Ingresos controlados (QR)</dt><dd class="col-5 text-end mhn-num">{{ r.total_tickets_utilizados }}</dd>
+        <dt class="col-7 mhn-muted">Efectivo</dt><dd class="col-5 text-end mhn-num">{{ r.total_efectivo | bs }}</dd>
+        <dt class="col-7 mhn-muted">Pago QR / transferencia</dt><dd class="col-5 text-end mhn-num">{{ r.total_qr | bs }}</dd>
+        <dt class="col-7 fw-semibold">Total recaudado</dt><dd class="col-5 text-end mhn-num fw-semibold">{{ r.total_recaudado | bs }}</dd>
+      </dl>
+      {% if r.ventas_anuladas or r.numeros_anulados %}
+      <hr class="mhn-divider">
+      <div class="small mhn-muted">
+        {% if r.ventas_anuladas %}Ventas anuladas: <strong>{{ r.ventas_anuladas }}</strong> ({{ r.monto_anulado | bs }}, {{ r.tickets_anulados }} boletos). {% endif %}
+        {% if r.numeros_anulados %}Números de talonario anulados: <strong>{{ r.numeros_anulados }}</strong>.{% endif %}
+      </div>
+      {% endif %}
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h6 mb-3">Por categoría</h2>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Categoría</th><th class="text-end">Boletos</th><th class="text-end">Monto</th></tr></thead>
+        <tbody>
+          {% for d in r.desglose %}
+          <tr><td>{{ d.nombre }}</td><td class="text-end mhn-num">{{ d.cantidad }}</td><td class="text-end mhn-num">{{ d.monto | bs }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+  </div>
+</div>
+
+{% if r.talonarios %}
+<div class="card mt-4"><div class="card-body">
+  <h2 class="h6 mb-1">Números de talonario consumidos</h2>
+  <p class="mhn-muted small">Para cuadrar con el talonario físico: del primer al último número usado ese día.</p>
+  <div class="table-responsive">
+  <table class="table table-sm mb-0">
+    <thead><tr><th>Categoría</th><th>Rango</th><th class="text-end">Vendidos</th><th class="text-end">De ventas anuladas</th><th class="text-end">Anulados</th><th class="text-end">Total consumidos</th></tr></thead>
+    <tbody>
+      {% for t in r.talonarios %}
+      <tr>
+        <td>{{ t.categoria }}</td>
+        <td>{{ rango(t.desde, t.hasta) }}</td>
+        <td class="text-end mhn-num">{{ t.vendidos }}</td>
+        <td class="text-end mhn-num">{{ t.de_ventas_anuladas }}</td>
+        <td class="text-end mhn-num">{{ t.numeros_danados }}{% if t.lista_danados %} <span class="mhn-muted small">({{ t.lista_danados | join(', ') }})</span>{% endif %}</td>
+        <td class="text-end mhn-num fw-semibold">{{ t.consumidos }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div></div>
+{% endif %}
+{% endmacro %}

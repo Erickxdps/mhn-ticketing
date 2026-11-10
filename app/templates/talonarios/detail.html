@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, rango with context %}
+{% block title %}Talonario {{ t.range_label }} — MHN{% endblock %}
+{% block topbar_title %}Talonario{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow"><a href="{{ url_for('talonarios.index') }}" class="text-decoration-none"><i class="bi bi-arrow-left"></i> Talonarios</a> · {{ t.ticket_category.name }}</span>
+<h1 class="mhn-page-title h3">{{ rango(t.first_number, t.last_number) }}</h1>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <div class="mhn-meter mb-2"><span style="width: {{ t.progress_percent }}%"></span></div>
+        <dl class="row mb-0">
+          <dt class="col-6 mhn-muted small">Estado</dt><dd class="col-6">{{ t.state_label }}</dd>
+          <dt class="col-6 mhn-muted small">Total de boletos</dt><dd class="col-6 mhn-num">{{ t.total }}</dd>
+          <dt class="col-6 mhn-muted small">Usados o anulados</dt><dd class="col-6 mhn-num">{{ t.consumed }}</dd>
+          <dt class="col-6 mhn-muted small">Disponibles</dt><dd class="col-6 mhn-num">{{ t.remaining }}</dd>
+          {% if t.status == "ACTIVE" and not t.is_exhausted %}
+          <dt class="col-6 mhn-muted small">Siguiente boleto</dt><dd class="col-6 mhn-num">{{ t.next_number | num5 }}</dd>
+          {% endif %}
+          <dt class="col-6 mhn-muted small">Registrado</dt><dd class="col-6">{{ t.created_at.strftime('%d/%m/%Y %H:%M') }}{% if t.creator %} · {{ t.creator.full_name }}{% endif %}</dd>
+          {% if t.notes %}<dt class="col-6 mhn-muted small">Nota</dt><dd class="col-6">{{ t.notes }}</dd>{% endif %}
+          {% if t.status == "CLOSED" %}
+          <dt class="col-6 mhn-muted small">Cerrado</dt><dd class="col-6">{{ t.closed_at.strftime('%d/%m/%Y %H:%M') if t.closed_at }}{% if t.close_reason %} · {{ t.close_reason }}{% endif %}</dd>
+          <dt class="col-6 mhn-muted small">Sin usar al cerrar</dt><dd class="col-6 mhn-num">{{ t.unused_when_closed }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if current_user.role == "ADMIN" and t.status == "ACTIVE" %}
+    <div class="card mt-3 mhn-danger-zone">
+      <div class="card-body">
+        <h2 class="h6 mb-1">Cerrar talonario</h2>
+        <p class="mhn-muted small mb-3">Los boletos que no se usaron dejan de estar disponibles. Úsalo si el talonario se perdió o se reemplazó.</p>
+        <form method="post" action="{{ url_for('talonarios.cerrar', booklet_id=t.id) }}" class="row g-2"
+              onsubmit="return confirm('¿Cerrar este talonario?');">
+          {{ csrf() }}
+          <div class="col-md-8"><input type="text" name="motivo" class="form-control" maxlength="200" placeholder="Motivo (obligatorio)" required></div>
+          <div class="col-md-4"><button type="submit" class="btn btn-outline-danger w-100">Cerrar</button></div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-7">
+    <h2 class="h6 mb-2">Números anulados</h2>
+    {% if t.voids %}
+    <div class="card mb-4"><div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead><tr><th class="ps-3">Número</th><th>Motivo</th><th>Registró</th><th class="pe-3">Fecha</th></tr></thead>
+        <tbody>
+          {% for v in t.voids %}
+          <tr>
+            <td class="ps-3 mhn-num">{{ v.number | num5 }}</td>
+            <td>{{ v.reason }}</td>
+            <td>{{ v.user.full_name if v.user }}</td>
+            <td class="pe-3 mhn-muted small">{{ v.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+    {% else %}
+    <p class="mhn-muted small mb-4">No hay números anulados en este talonario.</p>
+    {% endif %}
+
+    <h2 class="h6 mb-2">Últimas ventas con este talonario</h2>
+    {% if ventas %}
+    <div class="card"><div class="card-body p-0">
+      <table class="table table-sm mb-0">
+        <thead><tr><th class="ps-3">Venta</th><th>Boletos</th><th class="text-end">Cantidad</th><th class="pe-3">Fecha</th></tr></thead>
+        <tbody>
+          {% for v in ventas %}
+          <tr class="{{ 'mhn-row-voided' if v.anulada }}">
+            <td class="ps-3"><a href="{{ url_for('ventas.detalle', sale_id=v.sale_id) }}" class="mhn-num">#{{ v.sale_id }}</a>{% if v.anulada %} <span class="badge text-bg-danger">Anulada</span>{% endif %}</td>
+            <td>{{ rango(v.desde, v.hasta) }}</td>
+            <td class="text-end mhn-num">{{ v.cantidad }}</td>
+            <td class="pe-3 mhn-muted small">{{ v.fecha.strftime('%d/%m/%Y %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div></div>
+    {% else %}
+    <p class="mhn-muted small">Todavía no se vendió ningún boleto de este talonario.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

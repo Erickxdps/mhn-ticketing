@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión — MHN{% endblock %}
+{% block content %}
+<div class="mhn-auth-page">
+  <div class="mhn-auth-aside">
+    <svg class="mhn-auth-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M20 4C11 10 6 17 6 24c0 7.5 6.3 12 14 12s14-4.5 14-12c0-7-5-14-14-20Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M20 11v21M20 16c-3 0-6 1.6-7.5 4.2M20 22c-3.4 0-6.8 1.7-8.5 4.6M20 16c3 0 6 1.6 7.5 4.2M20 22c3.4 0 6.8 1.7 8.5 4.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <div>
+      <h1>Museo de Historia Natural</h1>
+      <p>Sistema de entradas: ventas, talonarios, control de ingreso y cierre diario.</p>
+    </div>
+    <small>Acceso solo para personal del museo.</small>
+  </div>
+
+  <div class="mhn-auth-main">
+    <button type="button" class="mhn-theme-toggle mhn-theme-toggle-floating" aria-label="Cambiar tema">
+      <i class="bi bi-moon-stars"></i>
+    </button>
+    <div class="mhn-auth-card">
+      <h2 class="mhn-auth-title">Iniciar sesión</h2>
+      <p class="mhn-auth-subtitle">Ingresa con tu usuario y contraseña.</p>
+
+      {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% for categoria, mensaje in mensajes %}
+        <div class="alert alert-{{ categoria if categoria in ('success','danger','warning','info') else 'info' }}" role="alert">{{ mensaje }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="post" action="{{ url_for('auth.login_post') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if siguiente %}<input type="hidden" name="next" value="{{ siguiente }}">{% endif %}
+        <div class="mb-3">
+          <label class="form-label" for="username">Usuario</label>
+          <input type="text" class="form-control" id="username" name="username" required autofocus autocomplete="username" maxlength="80">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="password">Contraseña</label>
+          <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
+        </div>
+        <div class="form-check mb-4">
+          <input class="form-check-input" type="checkbox" id="remember" name="remember">
+          <label class="form-check-label small" for="remember">Mantener la sesión iniciada en este equipo</label>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

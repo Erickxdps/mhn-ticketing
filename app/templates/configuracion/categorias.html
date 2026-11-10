@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}Categorías — MHN{% endblock %}
+{% block topbar_title %}Categorías{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">Administración</span>
+<h1 class="mhn-page-title h3">Categorías de entrada</h1>
+<p class="mhn-page-lede">Los cambios de nombre o precio se aplican a las ventas nuevas; las ventas ya registradas conservan su precio histórico. Cada cambio queda en la auditoría.</p>
+
+{% for categoria in categorias %}
+<form id="cat-form-{{ categoria.id }}" method="post"
+      action="{{ url_for('configuracion.categorias_editar', category_id=categoria.id) }}">{{ csrf() }}</form>
+{% endfor %}
+
+<div class="card mb-4">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th class="ps-3">Nombre</th>
+          <th>Precio (Bs)</th>
+          <th>Activa</th>
+          <th>Actualizada</th>
+          <th class="pe-3"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for categoria in categorias %}
+        <tr>
+          <td class="ps-3 mhn-col-name">
+            <input type="text" class="form-control form-control-sm fw-semibold" name="name"
+                   value="{{ categoria.name }}" minlength="2" maxlength="50" required
+                   form="cat-form-{{ categoria.id }}" aria-label="Nombre">
+            {% if categoria.id in sin_talonario %}
+              <a href="{{ url_for('talonarios.index') }}" class="small text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Sin boletos de talonario</a>
+            {% endif %}
+          </td>
+          <td class="mhn-col-price">
+            <input type="number" step="0.01" min="0" max="9999.99" class="form-control form-control-sm mhn-num"
+                   name="price" value="{{ '%.2f'|format(categoria.price) }}" required
+                   form="cat-form-{{ categoria.id }}" aria-label="Precio">
+          </td>
+          <td>
+            <input type="checkbox" class="form-check-input" name="is_active"
+                   {% if categoria.is_active %}checked{% endif %}
+                   form="cat-form-{{ categoria.id }}" aria-label="Activa">
+          </td>
+          <td class="mhn-muted small">{{ categoria.updated_at.strftime('%d/%m/%Y %H:%M') }}</td>
+          <td class="pe-3">
+            <button type="submit" class="btn btn-sm btn-outline-primary" form="cat-form-{{ categoria.id }}">Guardar</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<h2 class="h6 mb-2">Nueva categoría</h2>
+<div class="mhn-maxw-sm card">
+  <div class="card-body">
+    <form method="post" action="{{ url_for('configuracion.categorias_crear') }}">
+      {{ csrf() }}
+      <div class="mb-3">
+        <label class="form-label" for="name">Nombre</label>
+        <input type="text" class="form-control" id="name" name="name" minlength="2" maxlength="50" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="price">Precio (Bs)</label>
+        <input type="number" step="0.01" min="0" max="9999.99" class="form-control" id="price" name="price" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Crear categoría</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

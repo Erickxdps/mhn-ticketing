@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Validar entradas — MHN{% endblock %}
+{% block topbar_title %}Validar entradas{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">Control de ingreso</span>
+<h1 class="mhn-page-title h3">Validar entrada</h1>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0" for="codigo">Escanea el QR o ingresa el código</label>
+          <button type="button" id="toggle-camara" class="btn btn-sm btn-outline-primary d-print-none">
+            <i class="bi bi-camera"></i> Usar cámara
+          </button>
+        </div>
+
+        <div id="camara-wrap" class="mhn-camera d-none">
+          <video id="camara-video" playsinline muted></video>
+          <div class="mhn-reticle">
+            <span class="mhn-reticle-corner tl"></span>
+            <span class="mhn-reticle-corner tr"></span>
+            <span class="mhn-reticle-corner bl"></span>
+            <span class="mhn-reticle-corner br"></span>
+          </div>
+          <div id="camara-flash" class="mhn-camera-flash"></div>
+        </div>
+        <canvas id="camara-canvas" class="d-none"></canvas>
+        <p id="camara-estado" class="form-text text-danger d-none"></p>
+
+        <input type="text" class="form-control mhn-scan-input" id="codigo"
+               autofocus autocomplete="off" maxlength="100"
+               placeholder="MHN-20260822-000001">
+        <div class="form-text">
+          Sirve para lectores de QR USB o Bluetooth (escriben el código y presionan Enter)
+          o para pegar un código a mano. La cámara requiere HTTPS o <code>localhost</code>.
+          Los boletos de talonario físico no se validan aquí: se controlan en la puerta.
+        </div>
+      </div>
+    </div>
+
+    <div id="resultado" class="mhn-scan-result is-empty" aria-live="polite">
+      <div class="mhn-scan-icon"><i class="bi bi-qr-code-scan"></i></div>
+      <div class="mhn-scan-status">Esperando escaneo</div>
+      <p class="mhn-scan-message">El resultado de la validación aparece aquí.</p>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h6 mb-0">Últimas validaciones de esta sesión</h2>
+      <button type="button" id="vaciar-historial" class="btn btn-sm btn-link text-decoration-none p-0 mhn-muted">Vaciar</button>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div id="historial">
+          <p class="mhn-muted small mb-0" id="historial-vacio">Todavía no validaste ninguna entrada en esta sesión.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.MHN_URL_VALIDAR = {{ url_for('ingresos.validar') | tojson }};</script>
+<script src="{{ url_for('static', filename='vendor/jsqr/jsQR.js') }}"></script>
+<script src="{{ url_for('static', filename='js/ingresos.js') }}"></script>
+{% endblock %}

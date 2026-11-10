@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}Ajustes — MHN{% endblock %}
+{% block topbar_title %}Ajustes{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">Administración</span>
+<h1 class="mhn-page-title h3">Ajustes del sistema</h1>
+<p class="mhn-page-lede">Elige cómo se entregan las entradas. Puedes cambiarlo cuando quieras; las ventas ya hechas no se modifican.</p>
+
+<form method="post" action="{{ url_for('configuracion.ajustes_guardar') }}" class="mhn-maxw-lg">
+  {{ csrf() }}
+  <h2 class="h6 mb-3">Modo de venta</h2>
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <input type="radio" class="btn-check" name="sales_mode" id="modo-qr" value="{{ MODO_QR }}" {% if modo == MODO_QR %}checked{% endif %}>
+      <label class="mhn-mode-card" for="modo-qr">
+        <span class="mhn-mode-icon"><i class="bi bi-qr-code"></i></span>
+        <span class="fw-semibold">Ticket con QR</span>
+        <span class="small mhn-muted">Cada venta genera tickets imprimibles con código QR, que se validan en la puerta con el escáner.</span>
+      </label>
+    </div>
+    <div class="col-md-6">
+      <input type="radio" class="btn-check" name="sales_mode" id="modo-talonario" value="{{ MODO_TALONARIO }}" {% if modo == MODO_TALONARIO %}checked{% endif %}>
+      <label class="mhn-mode-card" for="modo-talonario">
+        <span class="mhn-mode-icon"><i class="bi bi-journal-bookmark"></i></span>
+        <span class="fw-semibold">Talonario físico</span>
+        <span class="small mhn-muted">No se imprime nada: el sistema indica qué números del talonario entregar y lleva el control de cada uno.</span>
+      </label>
+    </div>
+  </div>
+
+  <h2 class="h6 mb-3">Parámetros</h2>
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="ticket_validity_days">Días de vigencia de un ticket QR</label>
+          <input type="number" class="form-control mhn-num" id="ticket_validity_days" name="ticket_validity_days"
+                 min="0" max="365" value="{{ validez_dias }}" required>
+          <div class="form-text">Cuenta el día de la venta. 1 = solo vale el mismo día; 0 = no vence.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="booklet_low_threshold">Avisar cuando queden menos de (boletos)</label>
+          <input type="number" class="form-control mhn-num" id="booklet_low_threshold" name="booklet_low_threshold"
+                 min="1" max="10000" value="{{ umbral }}" required>
+          <div class="form-text">Se muestra un aviso y se sugiere registrar la reposición del talonario.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Guardar ajustes</button>
+</form>
+{% endblock %}

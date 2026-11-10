@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avisos_talonario, rango with context %}
+{% block title %}Dashboard — MHN{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">Hoy {% if cerrado %}· <span class="text-danger"><i class="bi bi-lock-fill"></i> día cerrado</span>{% endif %}</span>
+<h1 class="mhn-page-title h3">{{ resumen.fecha.strftime('%d/%m/%Y') }}</h1>
+<p class="mhn-page-lede">Resumen de la jornada, calculado en tiempo real.</p>
+
+{{ avisos_talonario(alertas, True) }}
+
+<div class="mhn-stat-grid">
+  <div class="mhn-stat"><div class="mhn-stat-label">Ventas</div><div class="mhn-stat-value mhn-mono">{{ resumen.total_ventas }}</div></div>
+  <div class="mhn-stat"><div class="mhn-stat-label">Boletos vendidos</div><div class="mhn-stat-value mhn-mono">{{ resumen.total_tickets_vendidos }}</div></div>
+  <div class="mhn-stat"><div class="mhn-stat-label">Ingresos QR validados</div><div class="mhn-stat-value mhn-mono">{{ resumen.total_tickets_utilizados }}</div></div>
+  <div class="mhn-stat"><div class="mhn-stat-label">Recaudación</div><div class="mhn-stat-value mhn-mono"><span class="mhn-unit">Bs</span> {{ '%.2f'|format(resumen.total_recaudado) }}</div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h6 mb-3">Por categoría</h2>
+      <table class="table table-sm mb-0">
+        <thead><tr><th>Categoría</th><th class="text-end">Boletos</th><th class="text-end">Monto</th></tr></thead>
+        <tbody>
+          {% for d in resumen.desglose %}
+          <tr><td>{{ d.nombre }}</td><td class="text-end mhn-num">{{ d.cantidad }}</td><td class="text-end mhn-num">{{ d.monto | bs }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <hr class="mhn-divider">
+      <div class="d-flex justify-content-between small"><span class="mhn-muted">Efectivo</span><span class="mhn-num">{{ resumen.total_efectivo | bs }}</span></div>
+      <div class="d-flex justify-content-between small"><span class="mhn-muted">QR / transferencia</span><span class="mhn-num">{{ resumen.total_qr | bs }}</span></div>
+      {% if resumen.ventas_anuladas %}
+      <div class="d-flex justify-content-between small text-danger mt-1"><span>Ventas anuladas</span><span class="mhn-num">{{ resumen.ventas_anuladas }}</span></div>
+      {% endif %}
+    </div></div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card h-100"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h6 mb-0">Talonarios {% if modo != MODO_TALONARIO %}<span class="badge text-bg-secondary ms-1">modo QR activo</span>{% endif %}</h2>
+        <a href="{{ url_for('talonarios.index') }}" class="small">Administrar</a>
+      </div>
+      <table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Categoría</th><th>Siguiente</th><th class="text-end">Quedan</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for f in estado_talonarios %}
+          <tr>
+            <td>{{ f.categoria.name }}</td>
+            <td class="mhn-num">{{ f.siguiente | num5 if f.siguiente is not none else '—' }}</td>
+            <td class="text-end mhn-num">{{ f.disponibles }}</td>
+            <td><span class="mhn-stock-chip is-{{ f.nivel }}">{% if f.nivel == 'sin' %}Sin talonario{% elif f.nivel == 'agotado' %}Agotado{% elif f.nivel == 'bajo' %}Quedan pocos{% else %}Disponible{% endif %}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if resumen.talonarios %}
+      <hr class="mhn-divider">
+      <div class="small mhn-muted mb-1">Consumidos hoy</div>
+      {% for t in resumen.talonarios %}
+      <div class="d-flex justify-content-between small"><span>{{ t.categoria }}</span><span>{{ rango(t.desde, t.hasta) }} <span class="mhn-muted">({{ t.consumidos }})</span></span></div>
+      {% endfor %}
+      {% endif %}
+    </div></div>
+  </div>
+</div>
+
+<div class="mt-3 d-flex gap-2 flex-wrap">
+  <a href="{{ url_for('reportes.index') }}" class="btn btn-outline-secondary"><i class="bi bi-calendar3"></i> Ver reporte de otra fecha</a>
+  <a href="{{ url_for('cierres.index') }}" class="btn btn-outline-secondary"><i class="bi bi-calendar-check"></i> Cierre diario</a>
+</div>
+{% endblock %}

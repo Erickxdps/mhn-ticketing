@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, badge_ticket, rango with context %}
+{% block title %}Venta #{{ sale.id }} — MHN{% endblock %}
+{% block topbar_title %}Venta #{{ sale.id }}{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow d-print-none">Venta · {{ 'Talonario físico' if sale.is_booklet else 'Ticket con QR' }}</span>
+<h1 class="mhn-page-title h3 mhn-num d-print-none">#{{ sale.id }}</h1>
+
+{% if sale.is_voided %}
+<div class="alert alert-danger d-print-none">
+  <strong><i class="bi bi-x-octagon-fill"></i> Venta anulada</strong>
+  el {{ sale.voided_at.strftime('%d/%m/%Y %H:%M') if sale.voided_at }}
+  {% if sale.voided_by_user %}por {{ sale.voided_by_user.full_name }}{% endif %}.
+  {% if sale.void_reason %}Motivo: {{ sale.void_reason }}{% endif %}
+</div>
+{% endif %}
+
+<div class="row g-4 d-print-none">
+  <div class="col-lg-4">
+    <dl class="row mb-0">
+      <dt class="col-5 mhn-muted small">Vendedor</dt>
+      <dd class="col-7">{{ sale.user.full_name }}</dd>
+      <dt class="col-5 mhn-muted small">Fecha</dt>
+      <dd class="col-7">{{ sale.created_at.strftime('%d/%m/%Y %H:%M') }}</dd>
+      <dt class="col-5 mhn-muted small">Pago</dt>
+      <dd class="col-7">{{ payment_method_labels.get(sale.payment_method, sale.payment_method) }}</dd>
+      <dt class="col-5 mhn-muted small">Total</dt>
+      <dd class="col-7 mhn-num fw-semibold">{{ sale.total_amount | bs }}</dd>
+    </dl>
+  </div>
+
+  <div class="col-lg-8">
+    <h2 class="h6 mb-2">Detalle por categoría</h2>
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th class="ps-3">Categoría</th>
+              <th class="text-end">Cantidad</th>
+              <th class="text-end">Precio unitario</th>
+              <th class="text-end pe-3">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in sale.sale_items %}
+            <tr>
+              <td class="ps-3">{{ item.ticket_category.name }}</td>
+              <td class="text-end mhn-num">{{ item.quantity }}</td>
+              <td class="text-end mhn-num">{{ item.unit_price | bs }}</td>
+              <td class="text-end pe-3 mhn-num">{{ item.subtotal | bs }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if sale.is_booklet %}
+<h2 class="h6 mt-4 mb-3 d-print-none">Boletos del talonario a entregar</h2>
+<div class="mhn-stub-grid">
+  {% for r in rangos %}
+  <div class="mhn-stub">
+    <div class="mhn-stub-head">
+      <span class="fw-semibold">{{ r.categoria }}</span>
+      <span class="badge text-bg-secondary mhn-num">× {{ r.cantidad }}</span>
+    </div>
+    <div class="mhn-stub-numbers">
+      {% for desde, hasta in r.tramos %}
+        <div>{{ rango(desde, hasta) }}</div>
+      {% endfor %}
+    </div>
+    {% if r.numeros | length > 1 %}
+    <div class="mhn-muted small">{{ r.numeros | map('num5') | join(', ') }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="d-flex justify-content-between align-items-center mt-4 mb-3 d-print-none">
+  <h2 class="h6 mb-0">Tickets generados</h2>
+  {% if not sale.is_voided %}
+  <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+    <i class="bi bi-printer"></i> Imprimir entradas
+  </button>
+  {% endif %}
+</div>
+
+<div class="mhn-tag-grid">
+  {% for item in sale.sale_items %}
+    {% for ticket in item.tickets %}
+    <div class="mhn-tag {{ 'is-voided' if ticket.status == 'CANCELLED' }}">
+      <div class="mhn-tag-eyebrow">Entrada · MHN</div>
+      <img src="{{ url_for('entradas.qr_png', ticket_id=ticket.id) }}" alt="QR de {{ ticket.ticket_code }}">
+      <div class="mhn-tag-code">{{ ticket.ticket_code }}</div>
+      <div class="mhn-tag-category">{{ item.ticket_category.name }}</div>
+      <div class="mhn-tag-footer">
+        {{ badge_ticket(ticket) }}
+        <a href="{{ url_for('entradas.detalle', ticket_id=ticket.id) }}" class="small d-print-none">Ver detalle</a>
+      </div>
+    </div>
+    {% endfor %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if puede_anular %}
+<div class="card mt-4 d-print-none mhn-danger-zone">
+  <div class="card-body">
+    <h2 class="h6 mb-1">Anular esta venta</h2>
+    <p class="mhn-muted small mb-3">
+      La venta deja de contar en reportes y en caja.
+      {% if sale.is_booklet %}Los números del talonario quedan registrados como anulados y no se reutilizan.{% else %}Los tickets dejan de ser válidos para el ingreso.{% endif %}
+      Esta acción no se puede deshacer.
+    </p>
+    <form method="post" action="{{ url_for('ventas.anular', sale_id=sale.id) }}" class="row g-2"
+          onsubmit="return confirm('¿Anular la venta #{{ sale.id }}?');">
+      {{ csrf() }}
+      <div class="col-md-8">
+        <input type="text" name="motivo" class="form-control" placeholder="Motivo (obligatorio)" maxlength="200" required>
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-outline-danger w-100">Anular venta</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

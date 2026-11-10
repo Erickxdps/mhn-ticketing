@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ficha_dia with context %}
+{% block title %}Reportes — MHN{% endblock %}
+{% block topbar_title %}Reportes{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">Reportes</span>
+<h1 class="mhn-page-title h3">Reporte por fecha</h1>
+<p class="mhn-page-lede">Resumen consolidado de ventas y boletos para un día puntual.</p>
+
+<form method="get" action="{{ url_for('reportes.index') }}" class="mhn-maxw-sm row g-2 mb-4 d-print-none">
+  <div class="col-8"><input type="date" class="form-control" name="fecha" value="{{ resumen.fecha.isoformat() }}"></div>
+  <div class="col-4"><button type="submit" class="btn btn-primary w-100">Consultar</button></div>
+</form>
+
+<div class="mhn-eyebrow mb-2">Ficha del día · {{ resumen.fecha.strftime('%d/%m/%Y') }}</div>
+{{ ficha_dia(resumen) }}
+
+<div class="mt-4 d-flex gap-2 flex-wrap d-print-none">
+  <a href="{{ url_for('reportes.ventas', fecha_inicio=resumen.fecha.isoformat(), fecha_fin=resumen.fecha.isoformat()) }}" class="btn btn-outline-secondary">Ver ventas del día</a>
+  <a href="{{ url_for('reportes.entradas', fecha_inicio=resumen.fecha.isoformat(), fecha_fin=resumen.fecha.isoformat()) }}" class="btn btn-outline-secondary">Ver entradas del día</a>
+  <button type="button" class="btn btn-outline-secondary" onclick="window.print()"><i class="bi bi-printer"></i> Imprimir</button>
+</div>
+{% endblock %}

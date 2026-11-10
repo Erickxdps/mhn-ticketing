@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avisos_talonario, csrf with context %}
+{% block title %}Ventas — MHN{% endblock %}
+{% block topbar_title %}Ventas{% endblock %}
+{% block content %}
+{% set es_talonario = modo == MODO_TALONARIO %}
+<span class="mhn-eyebrow">Punto de venta</span>
+<h1 class="mhn-page-title h3">Registrar venta</h1>
+<p class="mhn-page-lede">
+  {% if es_talonario %}
+    Elige la cantidad por categoría. El sistema te indica qué números del talonario entregar.
+  {% else %}
+    Elige la cantidad por categoría; cada unidad genera un ticket individual con su propio QR.
+  {% endif %}
+</p>
+
+{{ avisos_talonario(alertas, current_user.role == "ADMIN") }}
+
+{% if dia_cerrado %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-lock-fill"></i>
+  <span>El día de hoy ya está cerrado: no se pueden registrar más ventas. Un administrador puede reabrir el cierre desde “Cierre diario”.</span>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <form method="post" action="{{ url_for('ventas.crear') }}" id="form-venta">
+          {{ csrf() }}
+          <h2 class="h6 mb-3">Categorías</h2>
+          {% if not categorias %}
+            <p class="mhn-muted">No hay categorías activas configuradas.</p>
+          {% endif %}
+          {% for categoria in categorias %}
+          {% set est = estado_talonarios.get(categoria.id) %}
+          <div class="mhn-sale-row" data-categoria
+               data-precio="{{ '%.2f'|format(categoria.price) }}"
+               data-nombre="{{ categoria.name }}"
+               {% if es_talonario and est %}data-segmentos='{{ est.segmentos | tojson }}' data-disponibles="{{ est.disponibles }}"{% endif %}>
+            <div class="flex-grow-1">
+              <div class="fw-semibold">{{ categoria.name }}</div>
+              <div class="mhn-muted small mhn-num">Bs {{ '%.2f'|format(categoria.price) }}
+                {% if es_talonario and est %}
+                  · <span class="mhn-stock-chip is-{{ est.nivel }}">
+                    {% if est.nivel == 'sin' %}sin talonario{% elif est.nivel == 'agotado' %}agotado{% else %}quedan {{ est.disponibles }}{% endif %}
+                  </span>
+                {% endif %}
+              </div>
+              {% if es_talonario and est and est.siguiente %}
+              <div class="small mhn-muted">Siguiente: <span class="mhn-range">{{ est.siguiente | num5 }}</span></div>
+              {% endif %}
+            </div>
+            <div class="mhn-stepper" role="group" aria-label="Cantidad de {{ categoria.name }}">
+              <button type="button" class="btn btn-outline-secondary" data-paso="-1" aria-label="Quitar uno">−</button>
+              <input type="number" min="0" max="1000" step="1" inputmode="numeric"
+                     class="form-control text-center mhn-num"
+                     name="quantity_{{ categoria.id }}" value="0" aria-label="Cantidad">
+              <button type="button" class="btn btn-outline-secondary" data-paso="1" aria-label="Agregar uno">+</button>
+            </div>
+          </div>
+          {% endfor %}
+
+          <div class="mhn-sale-summary" id="resumen-venta" aria-live="polite">
+            <div class="d-flex justify-content-between align-items-baseline">
+              <span class="mhn-muted small"><span id="resumen-cantidad">0</span> boletos</span>
+              <span class="mhn-sale-total mhn-num">Bs <span id="resumen-total">0.00</span></span>
+            </div>
+            {% if es_talonario %}
+            <ul class="mhn-sale-ranges list-unstyled mb-0" id="resumen-rangos"></ul>
+            <div class="small text-danger mt-2 d-none" id="resumen-error"></div>
+            {% endif %}
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label" for="payment_method">Método de pago</label>
+            <select class="form-select" id="payment_method" name="payment_method" required>
+              {% for metodo in payment_methods %}
+              <option value="{{ metodo }}">{{ payment_method_labels[metodo] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100" id="btn-registrar"
+                  {% if not categorias or dia_cerrado %}disabled{% endif %}>
+            Registrar venta
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <h2 class="h6 mb-3">Ventas recientes</h2>
+    {% if ventas_recientes %}
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <thead>
+            <tr>
+              <th class="ps-3">#</th>
+              <th>Vendedor</th>
+              <th class="text-end">Total</th>
+              <th>Pago</th>
+              <th class="pe-3">Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for venta in ventas_recientes %}
+            <tr class="{{ 'mhn-row-voided' if venta.is_voided }}">
+              <td class="ps-3">
+                <a href="{{ url_for('ventas.detalle', sale_id=venta.id) }}" class="mhn-num">#{{ venta.id }}</a>
+                {% if venta.is_booklet %}<i class="bi bi-journal-bookmark mhn-muted" title="Talonario"></i>{% else %}<i class="bi bi-qr-code mhn-muted" title="QR"></i>{% endif %}
+              </td>
+              <td>{{ venta.user.full_name }}</td>
+              <td class="text-end mhn-num">{% if venta.is_voided %}<span class="badge text-bg-danger">Anulada</span>{% else %}{{ venta.total_amount | bs }}{% endif %}</td>
+              <td>{{ payment_method_labels.get(venta.payment_method, venta.payment_method) }}</td>
+              <td class="pe-3 mhn-muted small">{{ venta.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="mhn-empty card">
+      <i class="bi bi-ticket-perforated"></i>
+      Todavía no se registró ninguna venta.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>window.MHN_MODO_TALONARIO = {{ 'true' if es_talonario else 'false' }};</script>
+<script src="{{ url_for('static', filename='js/ventas.js') }}"></script>
+{% endblock %}

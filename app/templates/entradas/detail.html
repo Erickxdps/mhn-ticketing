@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge_ticket with context %}
+{% block title %}Entrada {{ ticket.display_number if ticket.is_physical else ticket.ticket_code }} — MHN{% endblock %}
+{% block topbar_title %}Entrada{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">{{ 'Boleto de talonario' if ticket.is_physical else 'Entrada con QR' }}</span>
+<h1 class="mhn-page-title h3 mhn-num">{{ ticket.display_number if ticket.is_physical else ticket.ticket_code }}</h1>
+
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="mhn-tag mhn-tag-standalone {{ 'is-voided' if ticket.status == 'CANCELLED' }}">
+      <div class="mhn-tag-eyebrow">Entrada · MHN</div>
+      {% if ticket.is_physical %}
+        <div class="mhn-tag-number mhn-num">{{ ticket.physical_number | num5 }}</div>
+      {% else %}
+        <img src="{{ url_for('entradas.qr_png', ticket_id=ticket.id) }}" alt="Código QR de la entrada">
+        <div class="mhn-tag-code">{{ ticket.ticket_code }}</div>
+      {% endif %}
+      <div class="mhn-tag-category">{{ ticket.sale_item.ticket_category.name }}</div>
+      <div class="mhn-tag-footer">{{ badge_ticket(ticket) }}</div>
+    </div>
+  </div>
+
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4 mhn-muted small">Categoría</dt>
+          <dd class="col-sm-8">{{ ticket.sale_item.ticket_category.name }}</dd>
+
+          {% if ticket.is_physical and ticket.booklet %}
+          <dt class="col-sm-4 mhn-muted small">Talonario</dt>
+          <dd class="col-sm-8">
+            {% if current_user.role == "ADMIN" %}
+              <a href="{{ url_for('talonarios.detalle', booklet_id=ticket.booklet.id) }}">{{ ticket.booklet.range_label }}</a>
+            {% else %}{{ ticket.booklet.range_label }}{% endif %}
+          </dd>
+          {% endif %}
+
+          <dt class="col-sm-4 mhn-muted small">Venta</dt>
+          <dd class="col-sm-8">
+            <a href="{{ url_for('ventas.detalle', sale_id=ticket.sale_item.sale_id) }}" class="mhn-num">#{{ ticket.sale_item.sale_id }}</a>
+          </dd>
+
+          <dt class="col-sm-4 mhn-muted small">Vendida el</dt>
+          <dd class="col-sm-8 mhn-num">{{ ticket.sold_at.strftime('%d/%m/%Y %H:%M') }}</dd>
+
+          <dt class="col-sm-4 mhn-muted small">{{ 'Ingreso' if ticket.is_physical else 'Usada el' }}</dt>
+          <dd class="col-sm-8 mhn-num">{{ ticket.used_at.strftime('%d/%m/%Y %H:%M') if ticket.used_at else '—' }}</dd>
+
+          {% if ticket.status == "CANCELLED" %}
+          <dt class="col-sm-4 mhn-muted small">Anulada</dt>
+          <dd class="col-sm-8">{{ ticket.voided_at.strftime('%d/%m/%Y %H:%M') if ticket.voided_at }} {% if ticket.void_reason %}· {{ ticket.void_reason }}{% endif %}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

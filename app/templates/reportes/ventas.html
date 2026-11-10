@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager with context %}
+{% block title %}Reporte de ventas — MHN{% endblock %}
+{% block topbar_title %}Reporte de ventas{% endblock %}
+{% block content %}
+{% set args = {} %}
+{% for k, v in filtros.items() %}{% if v %}{% set _ = args.update({k: v}) %}{% endif %}{% endfor %}
+<span class="mhn-eyebrow">Reportes</span>
+<h1 class="mhn-page-title h3">Ventas</h1>
+<p class="mhn-page-lede">{% if solo_propias %}Tus ventas registradas.{% else %}Todas las ventas, con filtros y exportación a CSV (Excel).{% endif %}</p>
+
+<form method="get" action="{{ url_for('reportes.ventas') }}" class="card mb-3 d-print-none">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Desde</label><input type="date" class="form-control form-control-sm" name="fecha_inicio" value="{{ filtros.fecha_inicio }}"></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Hasta</label><input type="date" class="form-control form-control-sm" name="fecha_fin" value="{{ filtros.fecha_fin }}"></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Categoría</label>
+        <select class="form-select form-select-sm" name="category_id"><option value="">Todas</option>
+          {% for c in categorias %}<option value="{{ c.id }}" {{ 'selected' if filtros.category_id == c.id }}>{{ c.name }}</option>{% endfor %}
+        </select></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Pago</label>
+        <select class="form-select form-select-sm" name="metodo"><option value="">Todos</option>
+          {% for k, v in payment_method_labels.items() %}<option value="{{ k }}" {{ 'selected' if filtros.metodo == k }}>{{ v }}</option>{% endfor %}
+        </select></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Estado</label>
+        <select class="form-select form-select-sm" name="estado"><option value="">Todos</option>
+          {% for k, v in estados.items() %}<option value="{{ k }}" {{ 'selected' if filtros.estado == k }}>{{ v }}</option>{% endfor %}
+        </select></div>
+      <div class="col-6 col-md-2 d-flex gap-1">
+        <button class="btn btn-primary btn-sm flex-grow-1" type="submit">Filtrar</button>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('reportes.ventas') }}" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <div class="small mhn-muted">
+    <strong class="mhn-num">{{ totales.cantidad }}</strong> ventas ({{ totales.activas }} activas) ·
+    Total activas: <strong class="mhn-num">{{ totales.monto | bs }}</strong>
+  </div>
+  <a class="btn btn-sm btn-outline-secondary d-print-none" href="{{ url_for('reportes.ventas', formato='csv', **args) }}"><i class="bi bi-filetype-csv"></i> Exportar CSV</a>
+</div>
+
+{% if paginacion.items %}
+<div class="card"><div class="card-body p-0"><div class="table-responsive">
+  <table class="table table-sm mb-0">
+    <thead><tr>
+      <th class="ps-3">#</th>{% if not solo_propias %}<th>Vendedor</th>{% endif %}<th>Fecha</th><th>Modo</th><th>Pago</th><th class="text-end">Boletos</th><th class="text-end pe-3">Total</th>
+    </tr></thead>
+    <tbody>
+      {% for venta in paginacion.items %}
+      <tr class="{{ 'mhn-row-voided' if venta.is_voided }}">
+        <td class="ps-3"><a href="{{ url_for('ventas.detalle', sale_id=venta.id) }}" class="mhn-num">#{{ venta.id }}</a>{% if venta.is_voided %} <span class="badge text-bg-danger">Anulada</span>{% endif %}</td>
+        {% if not solo_propias %}<td>{{ venta.user.full_name }}</td>{% endif %}
+        <td class="mhn-muted small">{{ venta.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td>{{ 'Talonario' if venta.is_booklet else 'QR' }}</td>
+        <td>{{ payment_method_labels.get(venta.payment_method, venta.payment_method) }}</td>
+        <td class="text-end mhn-num">{{ venta.total_tickets }}</td>
+        <td class="text-end pe-3 mhn-num">{{ '%.2f'|format(venta.total_amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div></div>
+{{ pager(paginacion, 'reportes.ventas', args) }}
+{% else %}
+<div class="mhn-empty card"><i class="bi bi-receipt"></i>No hay ventas con estos filtros.</div>
+{% endif %}
+{% endblock %}

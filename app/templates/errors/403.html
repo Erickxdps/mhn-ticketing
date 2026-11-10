@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Sin permiso — MHN{% endblock %}
+{% block topbar_title %}Sin permiso{% endblock %}
+{% block content %}
+<div class="mhn-maxw-md mhn-empty card mx-auto">
+  <i class="bi bi-shield-lock"></i>
+  <h1 class="h4 mb-2">No tienes permiso para ver esta página</h1>
+  <p class="mb-3">
+    {% if current_user.is_authenticated %}
+      Tu rol actual (<strong>{{ current_user.role }}</strong>) no tiene acceso a
+      esta sección. Si crees que es un error, consulta con un administrador.
+    {% else %}
+      Necesitas iniciar sesión para continuar.
+    {% endif %}
+  </p>
+  <a href="{{ url_for('main.index') if current_user.is_authenticated else url_for('auth.login') }}" class="btn btn-primary">
+    <i class="bi bi-house"></i> Volver al inicio
+  </a>
+</div>
+{% endblock %}

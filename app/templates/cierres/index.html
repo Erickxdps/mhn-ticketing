@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf, pager, ficha_dia with context %}
+{% block title %}Cierres diarios — MHN{% endblock %}
+{% block topbar_title %}Cierre diario{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">Administración</span>
+<h1 class="mhn-page-title h3">Cierre diario</h1>
+<p class="mhn-page-lede">Revisa los totales, cuenta el efectivo y cierra la jornada. Un día cerrado no admite más ventas ni anulaciones.</p>
+
+<form method="get" action="{{ url_for('cierres.index') }}" class="mhn-maxw-sm row g-2 mb-4">
+  <div class="col-8"><input type="date" class="form-control" name="fecha" value="{{ fecha.isoformat() }}" max="{{ hoy }}"></div>
+  <div class="col-4"><button type="submit" class="btn btn-outline-primary w-100">Ver día</button></div>
+</form>
+
+<div class="mhn-eyebrow mb-2">Vista previa · {{ fecha.strftime('%d/%m/%Y') }}</div>
+{{ ficha_dia(vista_previa) }}
+
+{% if ya_cerrado %}
+<div class="alert alert-info mt-4 d-flex align-items-center gap-2">
+  <i class="bi bi-lock-fill"></i><span>Este día ya está cerrado. Puedes ver el cierre en el historial de abajo.</span>
+</div>
+{% else %}
+<div class="mhn-maxw-lg card mt-4"><div class="card-body">
+  <h2 class="h6 mb-3">Cerrar el {{ fecha.strftime('%d/%m/%Y') }}</h2>
+  <form method="post" action="{{ url_for('cierres.crear') }}"
+        onsubmit="return confirm('¿Cerrar el día {{ fecha.strftime('%d/%m/%Y') }}? No se podrán registrar más ventas ese día.');">
+    {{ csrf() }}
+    <input type="hidden" name="closure_date" value="{{ fecha.isoformat() }}">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label" for="cash_counted">Efectivo contado (Bs)</label>
+        <input type="number" step="0.01" min="0" max="999999.99" class="form-control mhn-num" id="cash_counted" name="cash_counted">
+        <div class="form-text">Esperado: <strong class="mhn-num">{{ vista_previa.total_efectivo | bs }}</strong>. Opcional.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="notes">Observaciones (opcional)</label>
+        <input type="text" class="form-control" id="notes" name="notes" maxlength="300">
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3">Cerrar día</button>
+  </form>
+</div></div>
+{% endif %}
+
+<h2 class="h6 mt-5 mb-2">Historial de cierres</h2>
+{% if cierres.items %}
+<div class="card"><div class="card-body p-0"><div class="table-responsive">
+  <table class="table table-sm mb-0 align-middle">
+    <thead><tr><th class="ps-3">Fecha</th><th class="text-end">Boletos</th><th class="text-end">Total</th><th class="text-end">Efectivo</th><th class="text-end">Diferencia</th><th>Cerró</th><th class="pe-3"></th></tr></thead>
+    <tbody>
+      {% for c in cierres.items %}
+      {% set dif = c.cash_difference %}
+      <tr>
+        <td class="ps-3 mhn-num">{{ c.closure_date.strftime('%d/%m/%Y') }}</td>
+        <td class="text-end mhn-num">{{ c.total_tickets }}</td>
+        <td class="text-end mhn-num">{{ c.total_amount | bs }}</td>
+        <td class="text-end mhn-num">{{ c.total_cash | bs }}</td>
+        <td class="text-end mhn-num {{ 'text-danger' if dif is not none and dif != 0 }}">{% if dif is none %}—{% else %}{{ dif | bs }}{% endif %}</td>
+        <td>{{ c.closed_by_user.full_name if c.closed_by_user }}</td>
+        <td class="pe-3 text-end"><a href="{{ url_for('cierres.detalle', cierre_id=c.id) }}" class="small">Ver</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div></div>
+{{ pager(cierres, 'cierres.index', {}) }}
+{% else %}
+<div class="mhn-empty card"><i class="bi bi-calendar-check"></i>Todavía no hay cierres registrados.</div>
+{% endif %}
+{% endblock %}

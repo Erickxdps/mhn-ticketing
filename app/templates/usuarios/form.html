@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% from "_macros.html" import csrf with context %}
+{% block title %}{{ 'Nuevo usuario' if modo == 'nuevo' else 'Editar usuario' }} — MHN{% endblock %}
+{% block topbar_title %}Usuarios{% endblock %}
+{% block content %}
+<span class="mhn-eyebrow">Administración</span>
+<h1 class="mhn-page-title h3">{{ 'Nuevo usuario' if modo == 'nuevo' else 'Editar usuario: ' + usuario.username }}</h1>
+
+<div class="mhn-maxw-md card">
+  <div class="card-body">
+    <form method="post" action="{{ url_for('usuarios.nuevo_post') if modo == 'nuevo' else url_for('usuarios.editar_post', user_id=usuario.id) }}">
+      {{ csrf() }}
+
+      <div class="mb-3">
+        <label class="form-label" for="username">Usuario</label>
+        {% if modo == 'nuevo' %}
+        <input type="text" class="form-control" id="username" name="username" value="{{ datos.get('username', '') }}" required maxlength="40" pattern="[A-Za-z0-9._-]{3,40}" autocomplete="off">
+        <div class="form-text">3 a 40 caracteres: letras, números, punto, guion o guion bajo.</div>
+        {% else %}
+        <input type="text" class="form-control mhn-num" value="{{ usuario.username }}" disabled>
+        <div class="form-text">El nombre de usuario no se puede modificar.</div>
+        {% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="full_name">Nombre completo</label>
+        <input type="text" class="form-control" id="full_name" name="full_name"
+               value="{{ datos.get('full_name', usuario.full_name if usuario else '') }}" maxlength="150" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="role">Rol</label>
+        <select class="form-select" id="role" name="role" required>
+          {% for rol in roles %}
+          <option value="{{ rol }}" {% if datos.get('role', usuario.role if usuario else '') == rol %}selected{% endif %}>{{ rol }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label" for="password">
+          {{ 'Contraseña' if modo == 'nuevo' else 'Nueva contraseña (opcional)' }}
+        </label>
+        <input type="password" class="form-control" id="password" name="password" minlength="8" maxlength="128" autocomplete="new-password"
+               {% if modo == 'nuevo' %}required{% endif %}>
+        {% if modo == 'editar' %}
+        <div class="form-text">Déjala en blanco para no cambiarla.</div>
+        {% endif %}
+      </div>
+
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" id="is_active" name="is_active"
+               {% if datos.get('is_active', usuario.is_active if usuario else True) %}checked{% endif %}>
+        <label class="form-check-label" for="is_active">Usuario activo</label>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Guardar</button>
+      <a href="{{ url_for('usuarios.listar') }}" class="btn btn-outline-secondary">Cancelar</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

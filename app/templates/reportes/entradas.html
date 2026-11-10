@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pager, badge_ticket with context %}
+{% block title %}Reporte de entradas — MHN{% endblock %}
+{% block topbar_title %}Reporte de entradas{% endblock %}
+{% block content %}
+{% set args = {} %}
+{% for k, v in filtros.items() %}{% if v %}{% set _ = args.update({k: v}) %}{% endif %}{% endfor %}
+{% set etiquetas = {"UNUSED": "Sin usar", "USED": "Utilizada", "CANCELLED": "Anulada"} %}
+<span class="mhn-eyebrow">Reportes</span>
+<h1 class="mhn-page-title h3">Entradas</h1>
+<p class="mhn-page-lede">Boletos con QR y de talonario, con filtros y exportación a CSV (Excel).</p>
+
+<form method="get" action="{{ url_for('reportes.entradas') }}" class="card mb-3 d-print-none">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Desde</label><input type="date" class="form-control form-control-sm" name="fecha_inicio" value="{{ filtros.fecha_inicio }}"></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Hasta</label><input type="date" class="form-control form-control-sm" name="fecha_fin" value="{{ filtros.fecha_fin }}"></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Categoría</label>
+        <select class="form-select form-select-sm" name="category_id"><option value="">Todas</option>
+          {% for c in categorias %}<option value="{{ c.id }}" {{ 'selected' if filtros.category_id == c.id }}>{{ c.name }}</option>{% endfor %}
+        </select></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Estado</label>
+        <select class="form-select form-select-sm" name="status"><option value="">Todos</option>
+          {% for s in estados %}<option value="{{ s }}" {{ 'selected' if filtros.status == s }}>{{ etiquetas[s] }}</option>{% endfor %}
+        </select></div>
+      <div class="col-6 col-md-2"><label class="form-label small mb-1">Tipo</label>
+        <select class="form-select form-select-sm" name="tipo"><option value="">Todos</option>
+          {% for k, v in tipos.items() %}<option value="{{ k }}" {{ 'selected' if filtros.tipo == k }}>{{ v }}</option>{% endfor %}
+        </select></div>
+      <div class="col-6 col-md-2 d-flex gap-1">
+        <button class="btn btn-primary btn-sm flex-grow-1" type="submit">Filtrar</button>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('reportes.entradas') }}" title="Limpiar"><i class="bi bi-x-lg"></i></a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+  <div class="small mhn-muted"><strong class="mhn-num">{{ total }}</strong> entradas</div>
+  <a class="btn btn-sm btn-outline-secondary d-print-none" href="{{ url_for('reportes.entradas', formato='csv', **args) }}"><i class="bi bi-filetype-csv"></i> Exportar CSV</a>
+</div>
+
+{% if paginacion.items %}
+<div class="card"><div class="card-body p-0"><div class="table-responsive">
+  <table class="table table-sm mb-0">
+    <thead><tr><th class="ps-3">Código / N.º</th><th>Categoría</th><th>Venta</th><th>Vendida</th><th>Ingreso</th><th class="pe-3">Estado</th></tr></thead>
+    <tbody>
+      {% for t in paginacion.items %}
+      <tr>
+        <td class="ps-3"><a href="{{ url_for('entradas.detalle', ticket_id=t.id) }}" class="mhn-num">{{ t.display_number if t.is_physical else t.ticket_code }}</a></td>
+        <td>{{ t.sale_item.ticket_category.name }}</td>
+        <td><a href="{{ url_for('ventas.detalle', sale_id=t.sale_item.sale_id) }}" class="mhn-num">#{{ t.sale_item.sale_id }}</a></td>
+        <td class="mhn-muted small">{{ t.sold_at.strftime('%d/%m/%Y %H:%M') }}</td>
+        <td class="mhn-muted small">{{ t.used_at.strftime('%d/%m/%Y %H:%M') if t.used_at and not t.is_physical else '—' }}</td>
+        <td class="pe-3">{{ badge_ticket(t) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div></div></div>
+{{ pager(paginacion, 'reportes.entradas', args) }}
+{% else %}
+<div class="mhn-empty card"><i class="bi bi-ticket-perforated"></i>No hay entradas con estos filtros.</div>
+{% endif %}
+{% endblock %}

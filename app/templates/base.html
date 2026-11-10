@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Museo de Historia Natural — Entradas{% endblock %}</title>
+
+  <script>
+    // Aplicar el tema guardado (o la preferencia del sistema) antes de
+    // que se pinte la página, para evitar el parpadeo del tema
+    // equivocado al cargar.
+    (function () {
+      try {
+        var guardado = localStorage.getItem("mhn-theme");
+        var prefiereOscuro = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var tema = guardado || (prefiereOscuro ? "dark" : "light");
+        document.documentElement.setAttribute("data-theme", tema);
+      } catch (error) {
+        // localStorage no disponible: se queda con el tema claro por defecto.
+      }
+    })();
+  </script>
+
+  {# Todo se sirve desde este mismo servidor: la interfaz no depende de internet. #}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/modules.css') }}">
+</head>
+<body>
+{% macro nav_link(endpoint, icon, label, badge=0) %}
+  {% set bp = endpoint.split('.')[0] %}
+  {% set activo = request.blueprint == bp and (bp != 'configuracion' or request.endpoint.split('.')[1][:5] == endpoint.split('.')[1][:5]) %}
+  <a class="mhn-nav-link {{ 'is-active' if activo else '' }}" href="{{ url_for(endpoint) }}"{% if activo %} aria-current="page"{% endif %}>
+    <i class="bi {{ icon }}"></i> {{ label }}
+    {% if badge %}<span class="mhn-nav-badge" title="Hay avisos de talonario">{{ badge }}</span>{% endif %}
+  </a>
+{% endmacro %}
+
+{% if current_user.is_authenticated %}
+<div class="mhn-shell">
+  <div class="mhn-sidebar-backdrop"></div>
+  <aside class="mhn-sidebar">
+    <div class="mhn-brand">
+      <svg class="mhn-brand-mark" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M20 4C11 10 6 17 6 24c0 7.5 6.3 12 14 12s14-4.5 14-12c0-7-5-14-14-20Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M20 11v21M20 16c-3 0-6 1.6-7.5 4.2M20 22c-3.4 0-6.8 1.7-8.5 4.6M20 16c3 0 6 1.6 7.5 4.2M20 22c3.4 0 6.8 1.7 8.5 4.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span class="mhn-brand-text">
+        <span class="mhn-brand-title">MHN</span>
+        <span class="mhn-brand-subtitle">Sistema de entradas</span>
+      </span>
+    </div>
+
+    <nav class="mhn-nav">
+      {% if current_user.role == "ADMIN" %}
+        <div class="mhn-nav-label">General</div>
+        {{ nav_link('dashboard.index', 'bi-speedometer2', 'Dashboard') }}
+      {% endif %}
+
+      {% if current_user.role in ["ADMIN", "SELLER"] %}
+        <div class="mhn-nav-label">Operación</div>
+        {{ nav_link('ventas.index', 'bi-ticket-perforated', 'Ventas') }}
+        {% if current_user.role == "ADMIN" or modo_venta == MODO_TALONARIO %}
+          {{ nav_link('talonarios.index', 'bi-journal-bookmark', 'Talonarios', alertas_nav) }}
+        {% endif %}
+      {% endif %}
+      {% if current_user.role in ["ADMIN", "INSPECTOR"] %}
+        {% if current_user.role != "ADMIN" %}<div class="mhn-nav-label">Operación</div>{% endif %}
+        {{ nav_link('ingresos.index', 'bi-qr-code-scan', 'Validar entradas') }}
+      {% endif %}
+
+      {% if current_user.role in ["ADMIN", "SELLER"] %}
+        <div class="mhn-nav-label">Análisis</div>
+        {% if current_user.role == "ADMIN" %}
+          {{ nav_link('reportes.index', 'bi-bar-chart', 'Reportes') }}
+        {% else %}
+          {{ nav_link('reportes.ventas', 'bi-bar-chart', 'Mis ventas') }}
+        {% endif %}
+      {% endif %}
+
+      {% if current_user.role == "ADMIN" %}
+        <div class="mhn-nav-label">Administración</div>
+        {{ nav_link('cierres.index', 'bi-calendar-check', 'Cierre diario') }}
+        {{ nav_link('configuracion.categorias', 'bi-tags', 'Categorías') }}
+        {{ nav_link('configuracion.ajustes', 'bi-sliders', 'Ajustes') }}
+        {{ nav_link('usuarios.listar', 'bi-people', 'Usuarios') }}
+        {{ nav_link('auditoria.index', 'bi-clipboard-check', 'Auditoría') }}
+      {% endif %}
+    </nav>
+
+    <div class="mhn-sidebar-footer">
+      <a class="mhn-user-chip" href="{{ url_for('auth.cambiar_password') }}">
+        <span class="mhn-user-avatar">{{ current_user.full_name[:1] | upper }}</span>
+        <span class="mhn-user-meta">
+          <span class="mhn-user-name">{{ current_user.full_name }}</span>
+          <span class="mhn-user-role">{{ current_user.role }}</span>
+        </span>
+      </a>
+      <form method="post" action="{{ url_for('auth.logout') }}" class="mhn-logout-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="mhn-logout-btn">
+          <i class="bi bi-box-arrow-right"></i> Cerrar sesión
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="mhn-main">
+    <div class="mhn-topbar">
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="mhn-menu-toggle" aria-label="Abrir menú">
+          <i class="bi bi-list mhn-menu-icon"></i>
+        </button>
+        <span class="mhn-topbar-title">{% block topbar_title %}{% endblock %}</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        {% if current_user.role in ["ADMIN", "SELLER"] %}
+        <span class="mhn-mode-pill is-{{ 'booklet' if modo_venta == MODO_TALONARIO else 'qr' }}" title="Modo de venta actual">
+          <i class="bi {{ 'bi-journal-bookmark' if modo_venta == MODO_TALONARIO else 'bi-qr-code' }}"></i>
+          {{ 'Talonario' if modo_venta == MODO_TALONARIO else 'Ticket QR' }}
+        </span>
+        {% endif %}
+        <button type="button" class="mhn-theme-toggle" aria-label="Cambiar tema">
+          <i class="bi bi-moon-stars"></i>
+        </button>
+        <span class="badge text-bg-secondary d-none d-sm-inline-flex">{{ current_user.role }}</span>
+      </div>
+    </div>
+
+    <div class="mhn-content">
+{% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) if current_user.is_authenticated else [] %}
+        {% if messages %}
+          <div class="{{ '' if current_user.is_authenticated else 'container pt-3' }}">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'danger' if category == 'danger' else category }} alert-dismissible fade show d-print-none" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+{% if current_user.is_authenticated %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Página desactualizada — MHN{% endblock %}
+{% block topbar_title %}Página desactualizada{% endblock %}
+{% block content %}
+<div class="mhn-maxw-md mhn-empty card mx-auto">
+  <i class="bi bi-arrow-repeat"></i>
+  <h1 class="h4 mb-2">Esta página quedó desactualizada</h1>
+  <p class="mb-3">
+    La sesión del formulario venció o la página estuvo abierta demasiado tiempo.
+    No se guardó ningún cambio. Vuelve atrás, recarga la página e inténtalo otra vez.
+  </p>
+  <a href="{{ url_for('main.index') if current_user.is_authenticated else url_for('auth.login') }}" class="btn btn-primary">
+    <i class="bi bi-house"></i> Volver al inicio
+  </a>
+</div>
+{% endblock %}

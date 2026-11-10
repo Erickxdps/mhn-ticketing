@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Página no encontrada — MHN{% endblock %}
+{% block topbar_title %}Página no encontrada{% endblock %}
+{% block content %}
+<div class="mhn-maxw-md mhn-empty card mx-auto">
+  <i class="bi bi-signpost-split"></i>
+  <h1 class="h4 mb-2">Esta página no existe</h1>
+  <p class="mb-3">
+    Revisa la dirección o vuelve al inicio: puede que el enlace esté
+    roto o que la entrada, venta o registro que buscas ya no exista.
+  </p>
+  <a href="{{ url_for('main.index') if current_user.is_authenticated else url_for('auth.login') }}" class="btn btn-primary">
+    <i class="bi bi-house"></i> Volver al inicio
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "_macros.html" import avisos_talonario with context %}
+{% block title %}Inicio — MHN{% endblock %}
+{% block topbar_title %}Inicio{% endblock %}
+{% block content %}
+{% set es_admin = current_user.role == "ADMIN" %}
+{% set es_vendedor = current_user.role in ["ADMIN", "SELLER"] %}
+<h1 class="mhn-page-title">Hola, {{ current_user.full_name.split(' ')[0] }}</h1>
+<p class="mhn-page-lede">¿Qué necesitas hacer hoy?</p>
+
+{{ avisos_talonario(alertas, es_admin) }}
+
+<div class="mhn-quick-grid">
+  {% if es_vendedor %}
+  <a href="{{ url_for('ventas.index') }}" class="mhn-quick is-primary">
+    <i class="bi bi-ticket-perforated mhn-quick-icon"></i>
+    <span>
+      <span class="mhn-quick-title">Registrar venta</span>
+      <span class="mhn-quick-text">{% if modo_venta == MODO_TALONARIO %}Indica qué boletos del talonario entregar.{% else %}Genera las entradas con código QR.{% endif %}</span>
+    </span>
+  </a>
+  {% endif %}
+
+  {% if current_user.role in ["ADMIN", "INSPECTOR"] %}
+  <a href="{{ url_for('ingresos.index') }}" class="mhn-quick{{ ' is-primary' if current_user.role == 'INSPECTOR' }}">
+    <i class="bi bi-qr-code-scan mhn-quick-icon"></i>
+    <span>
+      <span class="mhn-quick-title">Validar entradas</span>
+      <span class="mhn-quick-text">Escanea o escribe el código para registrar el ingreso.</span>
+    </span>
+  </a>
+  {% endif %}
+
+  {% if es_admin or (current_user.role == "SELLER" and modo_venta == MODO_TALONARIO) %}
+  <a href="{{ url_for('talonarios.index') }}" class="mhn-quick">
+    <i class="bi bi-journal-bookmark mhn-quick-icon"></i>
+    <span>
+      <span class="mhn-quick-title">Talonarios</span>
+      <span class="mhn-quick-text">Boletos disponibles, reposiciones y números anulados.</span>
+    </span>
+  </a>
+  {% endif %}
+</div>
+
+{% if es_vendedor %}
+<h2 class="mhn-section-title">{{ 'Gestión' if es_admin else 'Consultas' }}</h2>
+<div class="mhn-linklist">
+  {% if es_admin %}
+  <a href="{{ url_for('dashboard.index') }}"><i class="bi bi-speedometer2"></i><span class="mhn-link-title">Dashboard</span><span class="mhn-link-text">Ventas, boletos y recaudación del día.</span></a>
+  {% endif %}
+  <a href="{{ url_for('reportes.ventas') }}"><i class="bi bi-bar-chart"></i><span class="mhn-link-title">Reportes</span><span class="mhn-link-text">{% if es_admin %}Ventas y entradas por fecha, categoría o estado; exportación a Excel.{% else %}Consulta tus propias ventas.{% endif %}</span></a>
+  {% if es_admin %}
+  <a href="{{ url_for('cierres.index') }}"><i class="bi bi-calendar-check"></i><span class="mhn-link-title">Cierre diario</span><span class="mhn-link-text">Cuadra la caja: efectivo, QR y números del talonario.</span></a>
+  <a href="{{ url_for('configuracion.categorias') }}"><i class="bi bi-tags"></i><span class="mhn-link-title">Categorías</span><span class="mhn-link-text">Nombres y precios de las entradas.</span></a>
+  <a href="{{ url_for('configuracion.ajustes') }}"><i class="bi bi-sliders"></i><span class="mhn-link-title">Ajustes</span><span class="mhn-link-text">Cambia entre talonario físico y ticket con QR.</span></a>
+  <a href="{{ url_for('usuarios.listar') }}"><i class="bi bi-people"></i><span class="mhn-link-title">Usuarios</span><span class="mhn-link-text">Cuentas, roles y estado.</span></a>
+  <a href="{{ url_for('auditoria.index') }}"><i class="bi bi-clipboard-check"></i><span class="mhn-link-title">Auditoría</span><span class="mhn-link-text">Cambios de precios, anulaciones, cierres y usuarios.</span></a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

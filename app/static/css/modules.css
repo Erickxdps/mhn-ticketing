@@ -1,0 +1,109 @@
+/* Módulos de talonarios, modo de venta, avisos y paginación.
+   Usa las variables de app.css, por lo que respeta el tema oscuro. */
+
+/* ---- Barra superior: modo de venta ---- */
+.mhn-mode-pill {
+  display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.22rem 0.7rem; border-radius: 999px;
+  font-size: 0.8125rem; font-weight: 600; border: 1px solid var(--mhn-border); color: var(--mhn-ink);
+  background: var(--mhn-surface); text-decoration: none; white-space: nowrap;
+}
+.mhn-mode-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--mhn-slate); }
+.mhn-mode-pill.is-booklet::before { background: var(--mhn-amber); }
+.mhn-mode-pill.is-qr::before { background: var(--mhn-moss); }
+.mhn-mode-pill i { display: none; }
+
+.mhn-nav-badge {
+  margin-left: auto; min-width: 1.3rem; padding: 0 0.4rem; border-radius: 999px;
+  background: #E9A898; color: #3A1710; font-size: 0.75rem; font-weight: 700; line-height: 1.3rem; text-align: center;
+}
+
+/* ---- Avisos de stock ---- */
+.mhn-stock-alerts { display: grid; gap: 0.4rem; margin-bottom: 1rem; }
+.mhn-stock-alert {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.9rem; border-radius: var(--mhn-radius);
+  border: 1px solid var(--mhn-warning-border); border-left: 4px solid var(--mhn-amber);
+  background: var(--mhn-amber-soft); color: var(--mhn-ink); font-size: 0.9rem;
+}
+.mhn-stock-alert.is-sin, .mhn-stock-alert.is-agotado { background: var(--mhn-rust-soft); border-color: var(--mhn-danger-border); border-left-color: var(--mhn-rust); }
+.mhn-stock-alert i { flex: none; }
+.mhn-stock-alert.is-sin i, .mhn-stock-alert.is-agotado i { color: var(--mhn-rust); }
+.mhn-stock-alert.is-bajo i { color: var(--mhn-amber-dark); }
+.mhn-stock-alert a { white-space: nowrap; font-weight: 600; color: inherit; }
+
+.mhn-stock-chip {
+  display: inline-block; padding: 0.05rem 0.55rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  background: var(--mhn-moss-soft); color: var(--mhn-success-text); border: 1px solid var(--mhn-success-border);
+}
+.mhn-stock-chip.is-bajo { background: var(--mhn-amber-soft); color: var(--mhn-amber-dark); border-color: var(--mhn-warning-border); }
+.mhn-stock-chip.is-sin, .mhn-stock-chip.is-agotado { background: var(--mhn-rust-soft); color: var(--mhn-rust); border-color: var(--mhn-danger-border); }
+
+/* ---- Rangos de números ---- */
+.mhn-range { font-family: var(--mhn-font-mono); font-weight: 600; letter-spacing: 0.02em; }
+.mhn-range-sep { margin: 0 0.35em; color: var(--mhn-slate); }
+
+/* ---- Formulario de venta ---- */
+.mhn-sale-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--mhn-border-soft); }
+.mhn-stepper { display: inline-flex; align-items: stretch; flex: none; }
+.mhn-stepper .btn { width: 2.5rem; padding: 0; font-size: 1.2rem; line-height: 1; }
+.mhn-stepper input { width: 3.6rem; border-radius: 0; margin: 0 -1px; -moz-appearance: textfield; font-weight: 600; }
+.mhn-stepper input::-webkit-outer-spin-button, .mhn-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.mhn-stepper .btn:first-child { border-radius: var(--mhn-radius-sm) 0 0 var(--mhn-radius-sm); }
+.mhn-stepper .btn:last-child { border-radius: 0 var(--mhn-radius-sm) var(--mhn-radius-sm) 0; }
+
+.mhn-sale-summary { margin: 1.1rem 0; padding: 0.9rem 1rem; border-radius: var(--mhn-radius); background: var(--mhn-row-hover); border: 1px solid var(--mhn-border); }
+.mhn-sale-total { font-size: 1.7rem; font-weight: 600; font-family: var(--mhn-font-display); font-variant-numeric: tabular-nums; }
+.mhn-sale-ranges { margin-top: 0.6rem !important; padding-top: 0.6rem; border-top: 1px solid var(--mhn-border); font-size: 0.92rem; }
+.mhn-sale-ranges:empty { display: none; }
+
+/* ---- Boletos de talonario (detalle de venta): etiqueta de espécimen ---- */
+.mhn-stub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.mhn-stub {
+  position: relative; padding: 0.95rem 1rem 0.95rem 2.1rem; border-radius: 4px 14px 14px 4px;
+  background: var(--mhn-label-paper); color: var(--mhn-label-ink); border: 1px solid var(--mhn-label-rule);
+  box-shadow: inset 0 0 0 4px var(--mhn-label-paper), inset 0 0 0 5px var(--mhn-label-rule);
+}
+.mhn-stub::before {
+  content: ""; position: absolute; left: 0.8rem; top: 50%; width: 10px; height: 10px; margin-top: -5px;
+  border-radius: 50%; background: var(--mhn-paper); border: 1px solid var(--mhn-label-rule);
+}
+.mhn-stub-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem; }
+.mhn-stub-numbers { font-size: 1.4rem; line-height: 1.5; }
+.mhn-stub .mhn-muted { color: var(--mhn-label-ink); opacity: 0.7; }
+
+/* ---- Tarjetas de talonario ---- */
+.mhn-booklet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 0.9rem; margin-bottom: 1rem; }
+.mhn-booklet-card { padding: 1rem 1.1rem; border-radius: var(--mhn-radius); background: var(--mhn-surface); border: 1px solid var(--mhn-border); }
+.mhn-booklet-next { font-family: var(--mhn-font-mono); font-size: 2rem; font-weight: 600; line-height: 1.1; margin-bottom: 0.6rem; letter-spacing: 0.02em; }
+.mhn-meter { height: 6px; border-radius: 999px; background: var(--mhn-border-soft); overflow: hidden; margin: 0.4rem 0; }
+.mhn-meter > span { display: block; height: 100%; background: var(--mhn-moss); border-radius: 999px; }
+.mhn-booklet-card.is-bajo .mhn-meter > span { background: var(--mhn-amber); }
+.mhn-booklet-card.is-sin .mhn-meter > span, .mhn-booklet-card.is-agotado .mhn-meter > span { background: var(--mhn-rust); }
+.mhn-booklet-card.is-bajo { border-color: var(--mhn-warning-border); }
+.mhn-booklet-card.is-sin, .mhn-booklet-card.is-agotado { border-color: var(--mhn-danger-border); }
+
+/* ---- Ajustes: tarjetas de modo ---- */
+.mhn-mode-card {
+  display: flex; flex-direction: column; gap: 0.35rem; height: 100%; padding: 1.1rem 1.15rem; cursor: pointer;
+  border-radius: var(--mhn-radius); background: var(--mhn-surface); border: 2px solid var(--mhn-border);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.mhn-mode-card:hover { border-color: var(--mhn-slate); }
+.btn-check:checked + .mhn-mode-card { border-color: var(--mhn-green-700); background: var(--mhn-green-100); }
+.mhn-mode-icon { font-size: 1.6rem; color: var(--mhn-green-700); }
+
+/* ---- Varios ---- */
+.mhn-danger-zone { border-color: var(--mhn-danger-border); }
+.mhn-row-voided td { opacity: 0.6; text-decoration: line-through; text-decoration-color: var(--mhn-rust); }
+.mhn-row-voided td .badge, .mhn-row-voided td a { text-decoration: none; display: inline-block; }
+.mhn-pager { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+
+@media print {
+  .mhn-stub { box-shadow: none; break-inside: avoid; }
+  .mhn-stub::before { display: none; }
+  .mhn-stock-alerts, .mhn-pager, .mhn-mode-pill { display: none !important; }
+}
+
+@media (max-width: 575.98px) {
+  .mhn-stock-alert { flex-wrap: wrap; }
+  .mhn-stock-alert a { flex-basis: 100%; padding-left: 1.6rem; }
+}
